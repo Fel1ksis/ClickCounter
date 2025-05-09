@@ -227,10 +227,29 @@ class ModernCounterApp:
             if os.path.exists('settings.json'):
                 with open('settings.json', 'r') as f:
                     settings = json.load(f)
+                    saved_counter = settings.get('counter', 0)
+                    saved_goal = settings.get('goal', None)
+                    saved_price = settings.get('price_per_box', 0)
+                    
+                    # Если есть сохраненные значения и они не нулевые
+                    if saved_counter > 0 or (saved_goal is not None and saved_goal > 0) or saved_price > 0:
+                        if messagebox.askyesno("Восстановление", 
+                            f"Найдены сохраненные значения:\n"
+                            f"Счетчик: {saved_counter}\n"
+                            f"Цель: {saved_goal if saved_goal is not None else 'Не установлена'}\n"
+                            f"Цена за коробку: {saved_price}\n\n"
+                            f"Восстановить эти значения?"):
+                            self.count_key = settings.get('count_key', 'e')
+                            self.counter = saved_counter
+                            self.goal = saved_goal
+                            self.price_per_box = saved_price
+                            return
+                    
+                    # Если пользователь отказался или значения нулевые
                     self.count_key = settings.get('count_key', 'e')
-                    self.counter = settings.get('counter', 0)
-                    self.goal = settings.get('goal', None)
-                    self.price_per_box = settings.get('price_per_box', 0)
+                    self.counter = 0
+                    self.goal = None
+                    self.price_per_box = 0
         except:
             self.count_key = 'e'
             self.counter = 0
