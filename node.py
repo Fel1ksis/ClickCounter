@@ -134,6 +134,22 @@ class ModernCounterApp:
         )
         self.set_price_button.pack(side=tk.LEFT, padx=5)
         
+        # Кнопка сброса
+        self.reset_frame = tk.Frame(self.top_frame, bg='#2F4F4F')
+        self.reset_frame.pack(fill=tk.X, pady=10)
+        
+        self.reset_button = tk.Button(
+            self.reset_frame,
+            text="Сбросить всё",
+            command=self.reset_all,
+            bg='#E74C3C',  # Красный цвет для кнопки сброса
+            fg='white',
+            font=('Helvetica', 12),
+            relief=tk.FLAT,
+            width=15
+        )
+        self.reset_button.pack(side=tk.LEFT, padx=5)
+        
         # Создаем рамки одинакового размера для всех счетчиков
         counter_height = 120
         
@@ -322,6 +338,24 @@ class ModernCounterApp:
         self.hint_label.config(
             text=f"'{self.count_key}' - добавить | Backspace - убавить"
         )
+    
+    def reset_all(self):
+        if messagebox.askyesno("Подтверждение", "Вы уверены, что хотите сбросить все значения?"):
+            self.counter = 0
+            self.goal = None
+            self.price_per_box = 0
+            
+            # Обновляем отображение
+            self.counter_label.config(text="0")
+            self.remaining_label.config(text="0")
+            self.earnings_label.config(text="0")
+            self.goal_entry.delete(0, tk.END)
+            self.price_entry.delete(0, tk.END)
+            
+            # Сохраняем изменения
+            self.save_settings()
+            
+            messagebox.showinfo("Успех", "Все значения сброшены!")
     
     def run(self):
         self.window.mainloop()
