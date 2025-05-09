@@ -4,12 +4,19 @@ from tkinter import ttk, messagebox
 import threading
 from datetime import datetime
 import winsound
+import json
+import os
 
 class ModernCounterApp:
     def __init__(self):
         self.counter = 0
         self.goal = None
         self.price_per_box = 0
+        self.count_key = 'e'  # Кнопка по умолчанию
+        
+        # Загрузка сохраненной кнопки
+        self.load_settings()
+        
         self.window = tk.Tk()
         self.window.title("Счётчик нажатий")
         self.window.geometry("500x800")
@@ -20,8 +27,35 @@ class ModernCounterApp:
         self.main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Верхняя секция - Установка цели и цены
-        self.top_frame = tk.Frame(self.main_frame, bg='#2F4F4F')  # Тёмный серо-зелёный
+        self.top_frame = tk.Frame(self.main_frame, bg='#2F4F4F')
         self.top_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        # Установка кнопки подсчета
+        self.key_frame = tk.Frame(self.top_frame, bg='#2F4F4F')
+        self.key_frame.pack(fill=tk.X, pady=10)
+        
+        self.key_label = tk.Label(
+            self.key_frame,
+            text="Кнопка подсчета:",
+            font=('Helvetica', 14),
+            fg='#ECF0F1',
+            bg='#2F4F4F',
+            width=15,
+            anchor='e'
+        )
+        self.key_label.pack(side=tk.LEFT, padx=5)
+        
+        self.key_button = tk.Button(
+            self.key_frame,
+            text=f"Нажмите для смены (сейчас: {self.count_key})",
+            command=self.start_key_capture,
+            bg='#3498DB',
+            fg='white',
+            font=('Helvetica', 12),
+            relief=tk.FLAT,
+            width=30
+        )
+        self.key_button.pack(side=tk.LEFT, padx=5)
         
         # Установка цели
         self.goal_frame = tk.Frame(self.top_frame, bg='#2F4F4F')  # Тёмный серо-зелёный
@@ -148,7 +182,7 @@ class ModernCounterApp:
         # Подсказка
         self.hint_label = tk.Label(
             self.main_frame,
-            text="'e' - добавить | Backspace - убавить",
+            text=f"'{self.count_key}' - добавить | Backspace - убавить",
             font=('Helvetica', 14),
             fg='#ECF0F1',
             bg='#2F4F4F',  # Тёмный серо-зелёный
@@ -162,6 +196,22 @@ class ModernCounterApp:
         
         # Эффект пульсации
         self.pulsating = False
+    
+    def load_settings(self):
+        try:
+            if os.path.exists('settings.json'):
+                with open('settings.json', 'r') as f:
+                    settings = json.load(f)
+                    self.count_key = settings.get('count_key', 'e')
+        except:
+            self.count_key = 'e'
+    
+    def save_settings(self):
+        settings = {
+            'count_key': self.count_key
+        }
+        with open('settings.json', 'w') as f:
+            json.dump(settings, f)
     
     def set_goal(self):
         try:
@@ -215,9 +265,34 @@ class ModernCounterApp:
             self.update_remaining()
             self.update_earnings()
     
+    def start_key_capture(self):
+        self.key_button.config(text="Нажмите любую клавишу...")
+        self.window.bind('<Key>', self.capture_key)
+    
+    def capture_key(self, event):
+        if event.keysym.lower() != 'backspace':  # Не позволяем использовать backspace
+            self.count_key = event.keysym.lower()
+            self.key_button.config(text=f"Нажмите для смены (сейчас: {self.count_key})")
+            self.window.unbind('<Key>')
+            self.save_settings()
+            
+            # Перезапускаем прослушивание клавиатуры с новой клавишей
+            keyboard.unhook_all()
+            self.start_listening()
+            
+            # Обновляем подсказку
+            self.update_hint()
+            
+            messagebox.showinfo("Успех", f"Кнопка подсчета изменена на '{self.count_key}'")
+    
     def start_listening(self):
-        keyboard.on_press_key('e', lambda _: self.window.after(0, self.increment_counter))
+        keyboard.on_press_key(self.count_key, lambda _: self.window.after(0, self.increment_counter))
         keyboard.on_press_key('backspace', lambda _: self.window.after(0, self.decrement_counter))
+    
+    def update_hint(self):
+        self.hint_label.config(
+            text=f"'{self.count_key}' - добавить | Backspace - убавить"
+        )
     
     def run(self):
         self.window.mainloop()
