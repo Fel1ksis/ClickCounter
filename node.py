@@ -134,30 +134,6 @@ class ModernCounterApp:
         )
         self.set_price_button.pack(side=tk.LEFT, padx=5)
         
-        # Подсказка
-        self.hint_label = tk.Label(
-            self.main_frame,
-            text=f"'{self.count_key}' - добавить | Backspace - убавить",
-            font=('Helvetica', 14),
-            fg='#ECF0F1',
-            bg='#2F4F4F',  # Тёмный серо-зелёный
-            wraplength=350
-        )
-        self.hint_label.pack(pady=20)
-        
-        # Кнопка сброса внизу
-        self.reset_button = tk.Button(
-            self.main_frame,
-            text="СБРОСИТЬ ВСЁ",
-            command=self.reset_all,
-            bg='#E74C3C',  # Красный цвет для кнопки сброса
-            fg='white',
-            font=('Helvetica', 14, 'bold'),
-            relief=tk.FLAT,
-            height=2
-        )
-        self.reset_button.pack(fill=tk.X, pady=20, padx=20)
-        
         # Создаем рамки одинакового размера для всех счетчиков
         counter_height = 120
         
@@ -205,6 +181,30 @@ class ModernCounterApp:
             bg='#D3D3D3'  # Светло-серый
         )
         self.earnings_label.pack(expand=True)
+        
+        # Подсказка
+        self.hint_label = tk.Label(
+            self.main_frame,
+            text=f"'{self.count_key}' - добавить | Backspace - убавить",
+            font=('Helvetica', 14),
+            fg='#ECF0F1',
+            bg='#2F4F4F',  # Тёмный серо-зелёный
+            wraplength=350
+        )
+        self.hint_label.pack(pady=20)
+        
+        # Кнопка сброса в самом низу
+        self.reset_button = tk.Button(
+            self.main_frame,
+            text="СБРОСИТЬ ВСЁ",
+            command=self.reset_all,
+            bg='#E74C3C',  # Красный цвет для кнопки сброса
+            fg='white',
+            font=('Helvetica', 14, 'bold'),
+            relief=tk.FLAT,
+            height=2
+        )
+        self.reset_button.pack(fill=tk.X, pady=(0, 20), padx=20, side=tk.BOTTOM)
         
         # Запуск отслеживания клавиатуры
         self.keyboard_thread = threading.Thread(target=self.start_listening, daemon=True)
