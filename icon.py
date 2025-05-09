@@ -20,8 +20,8 @@ def create_icon():
     text_color = (236, 240, 241)  # Светло-серый
     draw.text((size//2-30, size//2-60), "1", font=font, fill=text_color)
     
-    # Сохраняем как .ico
-    image.save('icon.ico', format='ICO', sizes=[(256, 256)])
+    # Сохраняем как .ico в нескольких размерах
+    image.save('icon.ico', format='ICO', sizes=[(16, 16), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
     
     return 'icon.ico'
 
