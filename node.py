@@ -14,13 +14,16 @@ class ModernCounterApp:
         self.price_per_box = 0
         self.count_key = 'e'  # Кнопка по умолчанию
         
-        # Загрузка сохраненной кнопки
+        # Загрузка сохраненных данных
         self.load_settings()
         
         self.window = tk.Tk()
         self.window.title("Счётчик нажатий")
         self.window.geometry("500x800")
         self.window.configure(bg='#2F4F4F')  # Тёмный серо-зелёный
+        
+        # Добавляем обработчик сворачивания окна
+        self.window.bind('<Unmap>', self.on_window_minimize)
         
         # Основной контейнер
         self.main_frame = ttk.Frame(self.window, padding="20")
@@ -196,6 +199,15 @@ class ModernCounterApp:
         
         # Эффект пульсации
         self.pulsating = False
+        
+        # Обновляем отображение счетчика и других значений после загрузки
+        self.counter_label.config(text=str(self.counter))
+        if self.goal is not None:
+            self.goal_entry.insert(0, str(self.goal))
+            self.update_remaining()
+        if self.price_per_box > 0:
+            self.price_entry.insert(0, str(self.price_per_box))
+            self.update_earnings()
     
     def load_settings(self):
         try:
@@ -203,15 +215,28 @@ class ModernCounterApp:
                 with open('settings.json', 'r') as f:
                     settings = json.load(f)
                     self.count_key = settings.get('count_key', 'e')
+                    self.counter = settings.get('counter', 0)
+                    self.goal = settings.get('goal', None)
+                    self.price_per_box = settings.get('price_per_box', 0)
         except:
             self.count_key = 'e'
+            self.counter = 0
+            self.goal = None
+            self.price_per_box = 0
     
     def save_settings(self):
         settings = {
-            'count_key': self.count_key
+            'count_key': self.count_key,
+            'counter': self.counter,
+            'goal': self.goal,
+            'price_per_box': self.price_per_box
         }
         with open('settings.json', 'w') as f:
             json.dump(settings, f)
+    
+    def on_window_minimize(self, event):
+        # Сохраняем данные при сворачивании окна
+        self.save_settings()
     
     def set_goal(self):
         try:
@@ -222,6 +247,7 @@ class ModernCounterApp:
             self.goal = new_goal
             self.update_remaining()
             self.goal_entry.delete(0, tk.END)
+            self.save_settings()  # Сохраняем после изменения цели
         except ValueError:
             messagebox.showerror("Ошибка", "Пожалуйста, введите целое число!")
     
@@ -234,6 +260,7 @@ class ModernCounterApp:
             self.price_per_box = new_price
             self.update_earnings()
             self.price_entry.delete(0, tk.END)
+            self.save_settings()  # Сохраняем после изменения цены
         except ValueError:
             messagebox.showerror("Ошибка", "Пожалуйста, введите число!")
     
@@ -257,6 +284,7 @@ class ModernCounterApp:
         self.counter_label.config(text=str(self.counter))
         self.update_remaining()
         self.update_earnings()
+        self.save_settings()  # Сохраняем после изменения счетчика
     
     def decrement_counter(self):
         if self.counter > 0:
@@ -264,6 +292,7 @@ class ModernCounterApp:
             self.counter_label.config(text=str(self.counter))
             self.update_remaining()
             self.update_earnings()
+            self.save_settings()  # Сохраняем после изменения счетчика
     
     def start_key_capture(self):
         self.key_button.config(text="Нажмите любую клавишу...")
