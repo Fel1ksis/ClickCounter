@@ -2,7 +2,7 @@ import keyboard
 import tkinter as tk
 from tkinter import ttk, messagebox
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta
 import winsound
 import json
 import os
@@ -13,6 +13,9 @@ class ModernCounterApp:
         self.goal = None
         self.price_per_box = 0
         self.count_key = 'e'  # Кнопка по умолчанию
+        self.start_time = None
+        self.last_click_time = None
+        self.average_time_per_click = None
         
         # Загрузка сохраненных данных
         self.load_settings()
@@ -28,6 +31,37 @@ class ModernCounterApp:
         # Основной контейнер
         self.main_frame = ttk.Frame(self.window, padding="20")
         self.main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Прогресс-бар слева
+        self.progress_frame = tk.Frame(self.main_frame, bg='#2F4F4F')
+        self.progress_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        self.progress_bar = ttk.Progressbar(
+            self.progress_frame,
+            orient='vertical',
+            length=200,
+            mode='determinate'
+        )
+        self.progress_bar.pack(side=tk.LEFT, padx=10)
+        
+        self.progress_label = tk.Label(
+            self.progress_frame,
+            text="0%",
+            font=('Helvetica', 12),
+            fg='#ECF0F1',
+            bg='#2F4F4F'
+        )
+        self.progress_label.pack(side=tk.LEFT, padx=5)
+        
+        # Время выполнения
+        self.time_label = tk.Label(
+            self.progress_frame,
+            text="",
+            font=('Helvetica', 12),
+            fg='#ECF0F1',
+            bg='#2F4F4F'
+        )
+        self.time_label.pack(side=tk.LEFT, padx=5)
         
         # Верхняя секция - Установка цели и цены
         self.top_frame = tk.Frame(self.main_frame, bg='#2F4F4F')
@@ -194,17 +228,17 @@ class ModernCounterApp:
         self.hint_label.pack(pady=20)
         
         # Кнопка сброса в самом низу
-        self.reset_button = tk.Button(
+        self.reset_button = tk.Label(
             self.main_frame,
             text="СБРОСИТЬ ВСЁ",
             command=self.reset_all,
-            bg='#E74C3C',  # Красный цвет для кнопки сброса
-            fg='white',
-            font=('Helvetica', 14, 'bold'),
-            relief=tk.FLAT,
-            height=2
+            fg='#ECF0F1',
+            font=('Helvetica', 14),
+            bg='#2F4F4F',
+            cursor='hand2'
         )
-        self.reset_button.pack(fill=tk.X, pady=(0, 20), padx=20, side=tk.BOTTOM)
+        self.reset_button.pack(pady=(0, 20), side=tk.BOTTOM)
+        self.reset_button.bind('<Button-1>', lambda e: self.reset_all())
         
         # Запуск отслеживания клавиатуры
         self.keyboard_thread = threading.Thread(target=self.start_listening, daemon=True)
@@ -312,12 +346,53 @@ class ModernCounterApp:
         self.earnings_label.config(text=str(earnings))  # Убрали символ рубля
     
     def increment_counter(self):
+        current_time = datetime.now()
+        if self.start_time is None:
+            self.start_time = current_time
+            self.last_click_time = current_time
+        else:
+            if self.last_click_time:
+                time_diff = (current_time - self.last_click_time).total_seconds()
+                if self.average_time_per_click is None:
+                    self.average_time_per_click = time_diff
+                else:
+                    self.average_time_per_click = (self.average_time_per_click + time_diff) / 2
+            self.last_click_time = current_time
+            
         self.counter += 1
         self.counter_label.config(text=str(self.counter))
         self.update_remaining()
         self.update_earnings()
-        self.save_settings()  # Сохраняем после изменения счетчика
-    
+        self.update_progress()
+        self.update_time_estimate()
+        self.save_settings()
+        
+        # Эффект пульсации
+        self.pulsate_counter()
+        
+        # Звуковой эффект
+        winsound.Beep(1000, 50)
+
+    def update_progress(self):
+        if self.goal and self.goal > 0:
+            progress = (self.counter / self.goal) * 100
+            self.progress_bar['value'] = progress
+            self.progress_label.config(text=f"{int(progress)}%")
+
+    def update_time_estimate(self):
+        if self.goal and self.average_time_per_click:
+            remaining_clicks = self.goal - self.counter
+            if remaining_clicks > 0:
+                estimated_seconds = remaining_clicks * self.average_time_per_click
+                estimated_time = timedelta(seconds=int(estimated_seconds))
+                hours = estimated_time.seconds // 3600
+                minutes = (estimated_time.seconds % 3600) // 60
+                seconds = estimated_time.seconds % 60
+                time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+                self.time_label.config(text=f"Осталось: {time_str}")
+            else:
+                self.time_label.config(text="Задача выполнена!")
+
     def decrement_counter(self):
         if self.counter > 0:
             self.counter -= 1
@@ -360,15 +435,17 @@ class ModernCounterApp:
             self.counter = 0
             self.goal = None
             self.price_per_box = 0
-            
-            # Обновляем отображение
+            self.start_time = None
+            self.last_click_time = None
+            self.average_time_per_click = None
             self.counter_label.config(text="0")
-            self.remaining_label.config(text="0")
-            self.earnings_label.config(text="0")
             self.goal_entry.delete(0, tk.END)
             self.price_entry.delete(0, tk.END)
-            
-            # Сохраняем изменения
+            self.remaining_label.config(text="0")
+            self.earnings_label.config(text="0")
+            self.progress_bar['value'] = 0
+            self.progress_label.config(text="0%")
+            self.time_label.config(text="")
             self.save_settings()
             
             messagebox.showinfo("Успех", "Все значения сброшены!")
